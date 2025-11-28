@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IRON PROTOCOL | Systems Online</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js for Analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Roboto+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'neon-blue': '#00f3ff',
+                        'neon-purple': '#bc13fe',
+                        'neon-green': '#0aff0a',
+                        'neon-red': '#ff003c',
+                        'cyber-black': '#050505',
+                        'cyber-gray': '#121212',
+                        'glass': 'rgba(20, 20, 20, 0.85)',
+                    },
+                    fontFamily: {
+                        'header': ['Orbitron', 'sans-serif'],
+                        'mono': ['Roboto Mono', 'monospace'],
+                    },
+                    boxShadow: {
+                        'neon': '0 0 10px rgba(0, 243, 255, 0.5), 0 0 20px rgba(0, 243, 255, 0.3)',
+                        'neon-p': '0 0 10px rgba(188, 19, 254, 0.5)',
+                        'neon-g': '0 0 10px rgba(10, 255, 10, 0.5)',
+                        'neon-r': '0 0 10px rgba(255, 0, 60, 0.5)',
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'scanline': 'scanline 8s linear infinite',
+                    },
+                    keyframes: {
+                        scanline: {
+                            '0%': { transform: 'translateY(-100%)' },
+                            '100%': { transform: 'translateY(100%)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #050505;
+            background-image: 
+                linear-gradient(rgba(0, 243, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 243, 255, 0.03) 1px, transparent 1px);
+            background-size: 30px 30px;
+            color: #e0e0e0;
+            overflow-x: hidden;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #050505; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #00f3ff; }
+
+        .glass-panel {
+            background: rgba(18, 18, 18, 0.9);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .neon-border {
+            border: 1px solid rgba(0, 243, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .glitch-text:hover {
+            text-shadow: 2px 0 #bc13fe, -2px 0 #00f3ff;
+        }
+
+        .tab-active {
+            color: #00f3ff;
+            border-bottom: 2px solid #00f3ff;
+            text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+            background: linear-gradient(to top, rgba(0, 243, 255, 0.1), transparent);
+        }
+
+        .tab-inactive {
+            color: #6b7280;
+            border-bottom: 2px solid transparent;
+        }
+
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+        
+        .protocol-card {
+            transition: all 0.3s ease;
+        }
+        
+        /* Body Scanner SVG Styles */
+        .body-part {
+            fill: rgba(255, 255, 255, 0.05);
+            stroke: rgba(0, 243, 255, 0.3);
+            stroke-width: 1;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .body-part:hover {
+            fill: rgba(0, 243, 255, 0.2);
+            stroke: #00f3ff;
+            filter: drop-shadow(0 0 5px rgba(0, 243, 255, 0.5));
+        }
+        .body-part.active {
+            fill: rgba(188, 19, 254, 0.4);
+            stroke: #bc13fe;
+            filter: drop-shadow(0 0 8px rgba(188, 19, 254, 0.6));
+        }
+
+        /* Checkbox Button Animation */
+        .btn-check {
+            transition: all 0.2s;
+        }
+        .btn-check:active {
+            transform: scale(0.9);
+        }
+        .btn-check.completed {
+            background-color: #0aff0a;
+            color: black;
+            border-color: #0aff0a;
+            box-shadow: 0 0 10px #0aff0a;
+        }
+
+        .active-split {
+            border: 2px solid #00f3ff;
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.3);
+        }
+    </style>
+</head>
+<body class="font-mono h-screen flex flex-col items-center relative selection:bg-neon-blue selection:text-black">
+
+    <!-- Background Scanline Effect -->
+    <div class="fixed inset-0 pointer-events-none z-0 opacity-5 bg-gradient-to-b from-transparent via-white to-transparent h-[20%] w-full animate-scanline"></div>
+
+    <!-- Main App Container -->
+    <div class="w-full max-w-md h-full flex flex-col relative z-10 bg-cyber-black/95 shadow-2xl border-x border-white/5">
+        
+        <!-- Header -->
+        <header class="p-4 flex justify-between items-center glass-panel sticky top-0 z-50 border-b border-white/10">
+            <div class="flex items-center gap-2">
+                <i data-lucide="cpu" class="text-neon-blue w-6 h-6 animate-pulse-slow"></i>
+                <h1 class="font-header font-bold text-xl tracking-wider text-white glitch-text">IRON<span class="text-neon-blue">PROTOCOL</span></h1>
+            </div>
+            <div class="text-[10px] text-neon-blue border border-neon-blue/30 px-2 py-1 rounded bg-neon-blue/5 animate-pulse">
+                SYS.V3.2
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main id="app-content" class="flex-1 overflow-y-auto p-4 pb-24 space-y-6">
+            
+            <!-- Dashboard View -->
+            <section id="view-dashboard" class="space-y-6 fade-in">
+                <!-- Welcome Widget -->
+                <div class="glass-panel p-5 rounded-lg relative overflow-hidden group border-l-4 border-neon-blue">
+                    <div class="absolute -right-6 -top-6 w-24 h-24 bg-neon-blue/10 rounded-full blur-2xl group-hover:bg-neon-blue/20 transition-all duration-500"></div>
+                    <p class="text-gray-400 text-xs mb-1 font-header">USER STATUS</p>
+                    <h2 class="text-2xl font-bold text-white mb-2">READY TO ENGAGE</h2>
+                    <p class="text-sm text-gray-300">"The body achieves what the mind believes. Initiate hypertrophy protocol."</p>
+                </div>
+
+                <!-- Next Workout Indicator -->
+                <div class="glass-panel p-4 rounded-lg border border-white/10 flex justify-between items-center cursor-pointer hover:bg-white/5 transition-colors" onclick="switchView('protocols')">
+                    <div>
+                        <p class="text-xs text-neon-blue font-bold tracking-widest mb-1">RECOMMENDED PROTOCOL</p>
+                        <h3 id="dash-next-protocol" class="text-xl font-header font-bold text-white">PUSH DAY</h3>
+                    </div>
+                    <i data-lucide="chevron-right" class="text-gray-500"></i>
+                </div>
+
+                <!-- Analytics Chart -->
+                <div class="glass-panel p-4 rounded-lg border border-white/5">
+                    <h3 class="font-header text-sm text-neon-blue mb-4 flex items-center gap-2">
+                        <i data-lucide="bar-chart-2" class="w-4 h-4"></i> VOLUME VELOCITY
+                    </h3>
+                    <div class="h-40 w-full">
+                        <canvas id="volumeChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Quick Stats -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="glass-panel p-4 rounded-lg border border-white/5">
+                        <div class="flex items-center gap-2 mb-2 text-neon-purple">
+                            <i data-lucide="dumbbell" class="w-4 h-4"></i>
+                            <span class="text-xs font-bold">TOTAL VOL</span>
+                        </div>
+                        <p class="text-xl font-bold text-white" id="total-volume-display">0 <span class="text-xs text-gray-500">KG</span></p>
+                    </div>
+                    <div class="glass-panel p-4 rounded-lg border border-white/5">
+                        <div class="flex items-center gap-2 mb-2 text-neon-blue">
+                            <i data-lucide="activity" class="w-4 h-4"></i>
+                            <span class="text-xs font-bold">SESSIONS</span>
+                        </div>
+                        <p class="text-xl font-bold text-white" id="total-sessions-display">0</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Workout Logger View (Manual) -->
+            <section id="view-workout" class="hidden space-y-6 fade-in">
+                <div class="flex justify-between items-end">
+                    <h2 class="font-header text-2xl text-white">MANUAL <span class="text-neon-blue">LOG</span></h2>
+                    <button onclick="clearInputs()" class="text-xs text-gray-500 hover:text-white underline">CLEAR FORM</button>
+                </div>
+
+                <div class="space-y-4">
+                    <!-- Exercise Input -->
+                    <div class="group">
+                        <label class="text-xs text-neon-blue mb-1 block">TARGET VECTOR (EXERCISE)</label>
+                        <div class="relative">
+                            <input type="text" id="input-exercise" placeholder="e.g. Bench Press" 
+                                class="w-full bg-cyber-gray border border-gray-700 rounded p-3 text-white focus:outline-none focus:border-neon-blue focus:shadow-neon transition-all">
+                            <i data-lucide="target" class="absolute right-3 top-3 text-gray-600 w-5 h-5"></i>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <!-- Weight -->
+                        <div>
+                            <label class="text-xs text-neon-blue mb-1 block">LOAD (KG)</label>
+                            <input type="number" id="input-weight" placeholder="000" 
+                                class="w-full bg-cyber-gray border border-gray-700 rounded p-3 text-white text-center font-bold text-lg focus:outline-none focus:border-neon-blue focus:shadow-neon transition-all">
+                        </div>
+                        <!-- Reps -->
+                        <div>
+                            <label class="text-xs text-neon-blue mb-1 block">REPETITIONS</label>
+                            <input type="number" id="input-reps" placeholder="00" 
+                                class="w-full bg-cyber-gray border border-gray-700 rounded p-3 text-white text-center font-bold text-lg focus:outline-none focus:border-neon-blue focus:shadow-neon transition-all">
+                        </div>
+                    </div>
+
+                    <!-- Action Button -->
+                    <button onclick="saveLog()" class="w-full bg-neon-blue/10 border border-neon-blue text-neon-blue font-header font-bold py-4 rounded hover:bg-neon-blue hover:text-black transition-all duration-300 shadow-neon flex justify-center items-center gap-2 group">
+                        <span>INITIATE SAVE PROTOCOL</span>
+                        <i data-lucide="save" class="w-4 h-4 group-hover:scale-110 transition-transform"></i>
+                    </button>
+                </div>
+
+                <!-- Session Log -->
+                <div class="mt-8">
+                    <div class="flex justify-between items-center mb-3 border-b border-white/10 pb-2">
+                        <h3 class="font-header text-sm text-gray-400">CURRENT SESSION</h3>
+                        <span id="session-count" class="text-xs bg-gray-800 px-2 py-0.5 rounded text-white">0 SETS</span>
+                    </div>
+                    <div id="current-session-list" class="space-y-2">
+                        <!-- Dynamic Content -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Protocols (PPL) View -->
+            <section id="view-protocols" class="hidden space-y-6 fade-in">
+                <!-- Current Objective Banner -->
+                <div class="bg-gradient-to-r from-neon-blue/10 to-transparent border-l-4 border-neon-blue p-4 rounded mb-6">
+                    <p class="text-[10px] font-bold text-neon-blue tracking-[0.2em] mb-1">CURRENT OBJECTIVE</p>
+                    <div class="flex justify-between items-center">
+                        <h2 id="current-objective-text" class="font-header text-2xl text-white">PUSH DAY</h2>
+                        <span class="text-xs bg-black/40 px-2 py-1 rounded text-gray-400 border border-white/10">WEEKLY ROTATION</span>
+                    </div>
+                </div>
+
+                <!-- PUSH -->
+                <div id="card-push" class="protocol-card glass-panel rounded-lg overflow-hidden border border-white/10">
+                    <div class="bg-red-900/20 p-3 border-b border-red-500/30 flex justify-between items-center cursor-pointer" onclick="toggleAccordion('push-content')">
+                        <h3 class="font-header font-bold text-red-400">PROTOCOL: PUSH</h3>
+                        <i data-lucide="chevron-down" class="w-4 h-4 text-red-400"></i>
+                    </div>
+                    <div id="push-content" class="hidden p-4 space-y-4 bg-black/20">
+                        <div id="push-list" class="space-y-4"></div> <!-- Populated by JS -->
+                        <button onclick="completeMission('push')" class="w-full mt-4 bg-red-600/20 hover:bg-red-600/40 text-red-400 border border-red-600/50 py-3 rounded font-bold text-xs tracking-widest transition-all">COMPLETE MISSION (NEXT: PULL)</button>
+                    </div>
+                </div>
+
+                <!-- PULL -->
+                <div id="card-pull" class="protocol-card glass-panel rounded-lg overflow-hidden border border-white/10">
+                    <div class="bg-neon-blue/10 p-3 border-b border-neon-blue/30 flex justify-between items-center cursor-pointer" onclick="toggleAccordion('pull-content')">
+                        <h3 class="font-header font-bold text-neon-blue">PROTOCOL: PULL</h3>
+                        <i data-lucide="chevron-down" class="w-4 h-4 text-neon-blue"></i>
+                    </div>
+                    <div id="pull-content" class="hidden p-4 space-y-4 bg-black/20">
+                        <div id="pull-list" class="space-y-4"></div> <!-- Populated by JS -->
+                        <button onclick="completeMission('pull')" class="w-full mt-4 bg-neon-blue/20 hover:bg-neon-blue/40 text-neon-blue border border-neon-blue/50 py-3 rounded font-bold text-xs tracking-widest transition-all">COMPLETE MISSION (NEXT: LEGS)</button>
+                    </div>
+                </div>
+
+                <!-- LEGS -->
+                <div id="card-legs" class="protocol-card glass-panel rounded-lg overflow-hidden border border-white/10">
+                    <div class="bg-neon-green/10 p-3 border-b border-neon-green/30 flex justify-between items-center cursor-pointer" onclick="toggleAccordion('legs-content')">
+                        <h3 class="font-header font-bold text-neon-green">PROTOCOL: LEGS</h3>
+                        <i data-lucide="chevron-down" class="w-4 h-4 text-neon-green"></i>
+                    </div>
+                    <div id="legs-content" class="hidden p-4 space-y-4 bg-black/20">
+                        <div id="legs-list" class="space-y-4"></div> <!-- Populated by JS -->
+                        <button onclick="completeMission('legs')" class="w-full mt-4 bg-neon-green/20 hover:bg-neon-green/40 text-neon-green border border-neon-green/50 py-3 rounded font-bold text-xs tracking-widest transition-all">COMPLETE MISSION (NEXT: PUSH)</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- System / Tools View -->
+            <section id="view-system" class="hidden space-y-8 fade-in">
+                
+                <!-- Holographic Body Scanner -->
+                <div>
+                    <h2 class="font-header text-2xl text-white mb-4">BIOMETRIC <span class="text-neon-purple">SCAN</span></h2>
+                    <div class="glass-panel p-4 rounded-lg border border-neon-purple/30 flex flex-col items-center">
+                        
+                        <!-- Interactive SVG Man -->
+                        <div class="relative w-48 h-64 mb-4">
+                            <svg viewBox="0 0 100 200" class="w-full h-full drop-shadow-lg">
+                                <!-- Head -->
+                                <circle cx="50" cy="20" r="12" class="body-part" data-part="Head" onclick="selectBodyPart(this, 'Head')"/>
+                                <!-- Neck -->
+                                <rect x="46" y="32" width="8" height="5" class="body-part" />
+                                <!-- Chest/Torso -->
+                                <path d="M 30 40 L 70 40 L 65 90 L 35 90 Z" class="body-part" data-part="Chest" onclick="selectBodyPart(this, 'Chest')"/>
+                                <!-- Waist/Abs -->
+                                <rect x="36" y="92" width="28" height="20" class="body-part" data-part="Waist" onclick="selectBodyPart(this, 'Waist')"/>
+                                <!-- Arms -->
+                                <rect x="15" y="42" width="12" height="40" rx="3" class="body-part" data-part="Arms" onclick="selectBodyPart(this, 'Arms')"/>
+                                <rect x="73" y="42" width="12" height="40" rx="3" class="body-part" data-part="Arms" onclick="selectBodyPart(this, 'Arms')"/>
+                                <!-- Thighs -->
+                                <rect x="32" y="115" width="15" height="40" rx="3" class="body-part" data-part="Thighs" onclick="selectBodyPart(this, 'Thighs')"/>
+                                <rect x="53" y="115" width="15" height="40" rx="3" class="body-part" data-part="Thighs" onclick="selectBodyPart(this, 'Thighs')"/>
+                                <!-- Calves -->
+                                <rect x="34" y="158" width="11" height="35" rx="2" class="body-part" data-part="Calves" onclick="selectBodyPart(this, 'Calves')"/>
+                                <rect x="55" y="158" width="11" height="35" rx="2" class="body-part" data-part="Calves" onclick="selectBodyPart(this, 'Calves')"/>
+                            </svg>
+                            
+                            <!-- Scanner Line Animation -->
+                            <div class="absolute top-0 left-0 w-full h-1 bg-neon-purple/50 blur-sm animate-scanline pointer-events-none"></div>
+                        </div>
+
+                        <!-- Input Controls -->
+                        <div class="w-full space-y-3">
+                            <div class="flex items-center justify-between border-b border-white/10 pb-2">
+                                <span class="text-xs text-gray-400">TARGET:</span>
+                                <span id="selected-part-display" class="font-header font-bold text-neon-purple">SELECT PART</span>
+                            </div>
+                            <div class="flex gap-2">
+                                <input type="number" id="measure-val" placeholder="Size (cm/in)" class="w-full bg-black/50 border border-gray-700 rounded p-2 text-white text-sm focus:border-neon-purple outline-none">
+                                <button onclick="saveMeasurement()" class="bg-neon-purple text-black font-bold px-4 rounded text-sm hover:bg-white transition-colors">LOG</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Measurement History -->
+                    <div class="mt-4">
+                        <h3 class="font-header text-xs text-gray-500 mb-2">RECENT SCANS</h3>
+                        <div id="measurements-list" class="space-y-2 max-h-32 overflow-y-auto"></div>
+                    </div>
+                </div>
+
+                <!-- Utilities -->
+                <div class="border-t border-white/10 pt-4">
+                    <h3 class="font-header text-lg text-gray-400 mb-3">DATA MANAGEMENT</h3>
+                    <button onclick="exportData()" class="w-full border border-neon-blue text-neon-blue hover:bg-neon-blue hover:text-black transition-colors py-2 rounded text-xs font-bold font-header flex items-center justify-center gap-2">
+                        <i data-lucide="download" class="w-4 h-4"></i> EXPORT DATABASE
+                    </button>
+                </div>
+            </section>
+        </main>
+
+        <!-- Navigation Bar (Bottom) -->
+        <nav class="glass-panel sticky bottom-0 w-full p-1 pb-4 border-t border-white/10 z-50">
+            <div class="grid grid-cols-4 gap-1">
+                <button onclick="switchView('dashboard')" id="nav-dashboard" class="nav-btn tab-active flex flex-col items-center justify-center py-2 transition-all">
+                    <i data-lucide="layout-dashboard" class="w-5 h-5 mb-1"></i>
+                    <span class="text-[10px] font-bold tracking-widest">DASH</span>
+                </button>
+                <button onclick="switchView('workout')" id="nav-workout" class="nav-btn tab-inactive flex flex-col items-center justify-center py-2 transition-all">
+                    <i data-lucide="plus-square" class="w-5 h-5 mb-1"></i>
+                    <span class="text-[10px] font-bold tracking-widest">LOG</span>
+                </button>
+                <button onclick="switchView('protocols')" id="nav-protocols" class="nav-btn tab-inactive flex flex-col items-center justify-center py-2 transition-all">
+                    <i data-lucide="book-open" class="w-5 h-5 mb-1"></i>
+                    <span class="text-[10px] font-bold tracking-widest">GUIDE</span>
+                </button>
+                <button onclick="switchView('system')" id="nav-system" class="nav-btn tab-inactive flex flex-col items-center justify-center py-2 transition-all">
+                    <i data-lucide="cpu" class="w-5 h-5 mb-1"></i>
+                    <span class="text-[10px] font-bold tracking-widest">SYS</span>
+                </button>
+            </div>
+        </nav>
+
+        <!-- Global Notifications -->
+        <div id="notification" class="absolute top-20 left-1/2 transform -translate-x-1/2 bg-neon-blue/20 backdrop-blur-md border border-neon-blue text-white px-6 py-3 rounded shadow-neon opacity-0 pointer-events-none transition-opacity duration-300 z-50 flex items-center gap-2">
+            <i data-lucide="check-circle" class="w-4 h-4 text-neon-blue"></i>
+            <span class="text-sm font-bold">DATA UPLOADED</span>
+        </div>
+
+    </div>
+
+    <script>
+        // --- Initialization ---
+        lucide.createIcons();
+        let volumeChartInstance = null;
+        let selectedBodyPart = "";
+        
+        // --- State Management ---
+        const appState = {
+            logs: JSON.parse(localStorage.getItem('iron_logs')) || [],
+            measurements: JSON.parse(localStorage.getItem('iron_measurements')) || [],
+            currentSession: [],
+            // Default to 'push' if not saved
+            currentSplit: localStorage.getItem('iron_split') || 'push' 
+        };
+
+        // --- Data Definitions (Protocols with Guidance) ---
+        const protocolData = {
+            push: [
+                { name: "Barbell Bench Press", rec: "3x8-12" },
+                { name: "Overhead Press", rec: "3x8-12" },
+                { name: "Incline DB Press", rec: "3x10-15" },
+                { name: "Lateral Raises", rec: "4x15-20" },
+                { name: "Tricep Pushdowns", rec: "3x12-15" }
+            ],
+            pull: [
+                { name: "Deadlift", rec: "3x5-8" },
+                { name: "Pull-Ups", rec: "3x8-12" },
+                { name: "Barbell Row", rec: "3x8-12" },
+                { name: "Face Pulls", rec: "4x15-20" },
+                { name: "Hammer Curls", rec: "3x10-15" }
+            ],
+            legs: [
+                { name: "Squat", rec: "3x6-10" },
+                { name: "Romanian Deadlift", rec: "3x8-12" },
+                { name: "Leg Press", rec: "3x10-15" },
+                { name: "Leg Extensions", rec: "3x12-15" },
+                { name: "Calf Raises", rec: "4x15-25" }
+            ]
+        };
+
+        // --- Navigation Logic ---
+        function switchView(viewName) {
+            ['dashboard', 'workout', 'protocols', 'system'].forEach(v => {
+                document.getElementById(`view-${v}`).classList.add('hidden');
+                const btn = document.getElementById(`nav-${v}`);
+                if(btn) {
+                    btn.classList.remove('tab-active', 'text-neon-blue');
+                    btn.classList.add('tab-inactive', 'text-gray-500');
+                }
+            });
+
+            const selectedView = document.getElementById(`view-${viewName}`);
+            if(selectedView) selectedView.classList.remove('hidden');
+            
+            const selectedBtn = document.getElementById(`nav-${viewName}`);
+            if(selectedBtn) {
+                selectedBtn.classList.remove('tab-inactive', 'text-gray-500');
+                selectedBtn.classList.add('tab-active', 'text-neon-blue');
+            }
+
+            if (viewName === 'dashboard') updateDashboard();
+            if (viewName === 'protocols') renderProtocols();
+            if (viewName === 'system') renderMeasurements();
+        }
+
+        function toggleAccordion(id) {
+            const el = document.getElementById(id);
+            el.classList.toggle('hidden');
+        }
+
+        // --- Workout Logic ---
+        function saveLog(exerciseOverride = null, weightOverride = null, repsOverride = null) {
+            const exercise = exerciseOverride || document.getElementById('input-exercise').value;
+            const weight = weightOverride || document.getElementById('input-weight').value;
+            const reps = repsOverride || document.getElementById('input-reps').value;
+
+            if (!exercise || !weight || !reps) {
+                showNotification("ERR: MISSING INPUT");
+                return;
+            }
+
+            const logEntry = {
+                id: Date.now(),
+                date: new Date().toLocaleDateString(),
+                timestamp: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                exercise: exercise,
+                weight: weight,
+                reps: reps
+            };
+
+            appState.logs.unshift(logEntry);
+            localStorage.setItem('iron_logs', JSON.stringify(appState.logs));
+            appState.currentSession.unshift(logEntry);
+            
+            if(!exerciseOverride) {
+                renderSessionLog();
+                document.getElementById('input-weight').value = '';
+                document.getElementById('input-reps').value = '';
+            }
+
+            showNotification("SET RECORDED");
+        }
+
+        function renderSessionLog() {
+            const list = document.getElementById('current-session-list');
+            list.innerHTML = '';
+            document.getElementById('session-count').innerText = `${appState.currentSession.length} SETS`;
+            appState.currentSession.forEach(log => {
+                const item = document.createElement('div');
+                item.className = 'flex justify-between items-center bg-white/5 p-3 rounded border-l-2 border-neon-blue fade-in';
+                item.innerHTML = `
+                    <div><p class="font-bold text-white text-sm">${log.exercise}</p><p class="text-xs text-gray-400">${log.timestamp}</p></div>
+                    <div class="text-right"><p class="text-neon-blue font-mono font-bold">${log.weight}kg x ${log.reps}</p></div>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        function clearInputs() {
+            document.getElementById('input-exercise').value = '';
+            document.getElementById('input-weight').value = '';
+            document.getElementById('input-reps').value = '';
+        }
+
+        // --- Protocol Interactive Logic & Rotation ---
+        function renderProtocols() {
+            // Update Headers
+            const currentObj = appState.currentSplit.toUpperCase();
+            document.getElementById('current-objective-text').innerText = `${currentObj} DAY`;
+
+            // Reset Card Styles
+            ['push', 'pull', 'legs'].forEach(t => {
+                const card = document.getElementById(`card-${t}`);
+                if (t === appState.currentSplit) {
+                    card.classList.add('active-split');
+                    document.getElementById(`${t}-content`).classList.remove('hidden'); // Auto expand current
+                } else {
+                    card.classList.remove('active-split');
+                    document.getElementById(`${t}-content`).classList.add('hidden');
+                }
+            });
+
+            // Render Lists
+            ['push', 'pull', 'legs'].forEach(type => {
+                const container = document.getElementById(`${type}-list`);
+                container.innerHTML = '';
+                
+                protocolData[type].forEach((item, index) => {
+                    const uniqueId = `${type}-${index}`;
+                    
+                    const row = document.createElement('div');
+                    row.className = "bg-white/5 p-3 rounded border border-white/5 flex flex-col gap-2";
+                    row.innerHTML = `
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <span class="font-bold text-sm text-gray-200 block">${item.name}</span>
+                                <span class="text-[10px] text-neon-blue font-mono bg-neon-blue/10 px-1 rounded">GUIDE: ${item.rec}</span>
+                            </div>
+                            <button id="btn-${uniqueId}" onclick="logProtocolItem('${item.name}', '${uniqueId}')" class="btn-check border border-neon-blue/50 text-neon-blue rounded px-3 py-1 text-xs font-bold hover:bg-neon-blue hover:text-black">
+                                <i data-lucide="check" class="w-3 h-3 inline"></i> LOG
+                            </button>
+                        </div>
+                        <div class="flex gap-2">
+                            <input type="number" id="w-${uniqueId}" placeholder="Weight" class="w-1/2 bg-black/40 border border-gray-700 rounded p-2 text-white text-xs text-center">
+                            <input type="number" id="r-${uniqueId}" placeholder="Reps" class="w-1/2 bg-black/40 border border-gray-700 rounded p-2 text-white text-xs text-center">
+                        </div>
+                    `;
+                    container.appendChild(row);
+                });
+            });
+            lucide.createIcons();
+        }
+
+        function logProtocolItem(exercise, id) {
+            const w = document.getElementById(`w-${id}`).value;
+            const r = document.getElementById(`r-${id}`).value;
+            
+            if(!w || !r) {
+                showNotification("ENTER DATA");
+                return;
+            }
+
+            saveLog(exercise, w, r);
+            
+            // Visual Feedback
+            const btn = document.getElementById(`btn-${id}`);
+            btn.classList.add('completed');
+            btn.innerHTML = "DONE";
+        }
+
+        function completeMission(current) {
+            let next = 'push';
+            if (current === 'push') next = 'pull';
+            if (current === 'pull') next = 'legs';
+            if (current === 'legs') next = 'push';
+
+            appState.currentSplit = next;
+            localStorage.setItem('iron_split', next);
+            
+            showNotification(`CYCLE ADVANCED: ${next.toUpperCase()}`);
+            
+            // Re-render to show new state
+            setTimeout(renderProtocols, 500);
+            updateDashboard(); // Update dashboard dash text
+        }
+
+        // --- Measurement / Body Scanner Logic ---
+        function selectBodyPart(element, partName) {
+            // Reset styles
+            document.querySelectorAll('.body-part').forEach(el => el.classList.remove('active'));
+            // Set active
+            element.classList.add('active');
+            
+            selectedBodyPart = partName;
+            document.getElementById('selected-part-display').innerText = partName.toUpperCase();
+            document.getElementById('measure-val').focus();
+        }
+
+        function saveMeasurement() {
+            const val = document.getElementById('measure-val').value;
+            
+            if(!val || !selectedBodyPart) {
+                showNotification("SELECT PART & VALUE");
+                return;
+            }
+
+            const entry = {
+                id: Date.now(),
+                date: new Date().toLocaleDateString(),
+                part: selectedBodyPart,
+                value: val
+            };
+
+            appState.measurements.unshift(entry);
+            localStorage.setItem('iron_measurements', JSON.stringify(appState.measurements));
+            
+            document.getElementById('measure-val').value = '';
+            renderMeasurements();
+            showNotification("BIOMETRIC SAVED");
+        }
+
+        function renderMeasurements() {
+            const list = document.getElementById('measurements-list');
+            list.innerHTML = '';
+            if (appState.measurements.length === 0) {
+                list.innerHTML = `<div class="text-center text-gray-600 text-xs py-2">NO DATA</div>`;
+                return;
+            }
+            appState.measurements.forEach(m => {
+                const el = document.createElement('div');
+                el.className = 'flex justify-between items-center bg-white/5 p-2 rounded text-xs border border-white/5';
+                el.innerHTML = `
+                    <span class="text-gray-300">${m.part}</span>
+                    <span class="font-mono font-bold text-neon-purple">${m.value}</span>
+                `;
+                list.appendChild(el);
+            });
+        }
+
+        // --- Dashboard / Charts Logic ---
+        function updateDashboard() {
+            // Basic Stats
+            const totalVolume = appState.logs.reduce((acc, curr) => acc + (parseFloat(curr.weight) * parseFloat(curr.reps)), 0);
+            document.getElementById('total-volume-display').innerText = totalVolume.toLocaleString();
+            
+            const uniqueDates = new Set(appState.logs.map(log => log.date));
+            document.getElementById('total-sessions-display').innerText = uniqueDates.size;
+
+            // Current Protocol Display
+            document.getElementById('dash-next-protocol').innerText = `${appState.currentSplit.toUpperCase()} DAY`;
+
+            // Chart Logic
+            renderChart();
+        }
+
+        function renderChart() {
+            const ctx = document.getElementById('volumeChart').getContext('2d');
+            
+            // Group data by date
+            const grouped = {};
+            appState.logs.forEach(log => {
+                if(!grouped[log.date]) grouped[log.date] = 0;
+                grouped[log.date] += (parseFloat(log.weight) * parseFloat(log.reps));
+            });
+
+            // Sort dates (last 7 entries)
+            const sortedKeys = Object.keys(grouped).sort((a,b) => new Date(a) - new Date(b)).slice(-7);
+            const dataPoints = sortedKeys.map(k => grouped[k]);
+
+            if(volumeChartInstance) volumeChartInstance.destroy();
+
+            volumeChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: sortedKeys,
+                    datasets: [{
+                        label: 'Volume (KG)',
+                        data: dataPoints,
+                        borderColor: '#00f3ff',
+                        backgroundColor: 'rgba(0, 243, 255, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        fill: true,
+                        pointBackgroundColor: '#000',
+                        pointBorderColor: '#00f3ff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: { color: '#666', font: { family: 'Roboto Mono' } }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#666', font: { size: 10, family: 'Roboto Mono' } }
+                        }
+                    }
+                }
+            });
+        }
+
+        function exportData() {
+            const dataToExport = {
+                logs: appState.logs,
+                measurements: appState.measurements,
+                exportedAt: new Date().toISOString()
+            };
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dataToExport));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", "iron_protocol_backup.json");
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        }
+
+        function showNotification(msg) {
+            const notif = document.getElementById('notification');
+            notif.querySelector('span').innerText = msg;
+            notif.classList.remove('opacity-0');
+            setTimeout(() => notif.classList.add('opacity-0'), 2000);
+        }
+
+        // Init
+        updateDashboard();
+    </script>
+</body>
+</html>
