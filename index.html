@@ -164,7 +164,7 @@
                 <h1 class="font-header font-bold text-xl tracking-wider text-white glitch-text">IRON<span class="text-neon-blue">PROTOCOL</span></h1>
             </div>
             <div class="text-[10px] text-neon-blue border border-neon-blue/30 px-2 py-1 rounded bg-neon-blue/5 animate-pulse">
-                SYS.V3.2
+                SYS.V3.5
             </div>
         </header>
 
@@ -327,26 +327,29 @@
                     <h2 class="font-header text-2xl text-white mb-4">BIOMETRIC <span class="text-neon-purple">SCAN</span></h2>
                     <div class="glass-panel p-4 rounded-lg border border-neon-purple/30 flex flex-col items-center">
                         
-                        <!-- Interactive SVG Man -->
+                        <!-- Interactive SVG Man with Left/Right Precision -->
                         <div class="relative w-48 h-64 mb-4">
                             <svg viewBox="0 0 100 200" class="w-full h-full drop-shadow-lg">
                                 <!-- Head -->
                                 <circle cx="50" cy="20" r="12" class="body-part" data-part="Head" onclick="selectBodyPart(this, 'Head')"/>
                                 <!-- Neck -->
-                                <rect x="46" y="32" width="8" height="5" class="body-part" />
+                                <rect x="46" y="32" width="8" height="5" class="body-part" data-part="Neck" onclick="selectBodyPart(this, 'Neck')"/>
                                 <!-- Chest/Torso -->
                                 <path d="M 30 40 L 70 40 L 65 90 L 35 90 Z" class="body-part" data-part="Chest" onclick="selectBodyPart(this, 'Chest')"/>
                                 <!-- Waist/Abs -->
                                 <rect x="36" y="92" width="28" height="20" class="body-part" data-part="Waist" onclick="selectBodyPart(this, 'Waist')"/>
-                                <!-- Arms -->
-                                <rect x="15" y="42" width="12" height="40" rx="3" class="body-part" data-part="Arms" onclick="selectBodyPart(this, 'Arms')"/>
-                                <rect x="73" y="42" width="12" height="40" rx="3" class="body-part" data-part="Arms" onclick="selectBodyPart(this, 'Arms')"/>
+                                
+                                <!-- Arms (Right on screen is Left Anatomical) -->
+                                <rect x="15" y="42" width="12" height="40" rx="3" class="body-part" data-part="Right Arm" onclick="selectBodyPart(this, 'Right Arm')"/>
+                                <rect x="73" y="42" width="12" height="40" rx="3" class="body-part" data-part="Left Arm" onclick="selectBodyPart(this, 'Left Arm')"/>
+                                
                                 <!-- Thighs -->
-                                <rect x="32" y="115" width="15" height="40" rx="3" class="body-part" data-part="Thighs" onclick="selectBodyPart(this, 'Thighs')"/>
-                                <rect x="53" y="115" width="15" height="40" rx="3" class="body-part" data-part="Thighs" onclick="selectBodyPart(this, 'Thighs')"/>
+                                <rect x="32" y="115" width="15" height="40" rx="3" class="body-part" data-part="Right Thigh" onclick="selectBodyPart(this, 'Right Thigh')"/>
+                                <rect x="53" y="115" width="15" height="40" rx="3" class="body-part" data-part="Left Thigh" onclick="selectBodyPart(this, 'Left Thigh')"/>
+                                
                                 <!-- Calves -->
-                                <rect x="34" y="158" width="11" height="35" rx="2" class="body-part" data-part="Calves" onclick="selectBodyPart(this, 'Calves')"/>
-                                <rect x="55" y="158" width="11" height="35" rx="2" class="body-part" data-part="Calves" onclick="selectBodyPart(this, 'Calves')"/>
+                                <rect x="34" y="158" width="11" height="35" rx="2" class="body-part" data-part="Right Calf" onclick="selectBodyPart(this, 'Right Calf')"/>
+                                <rect x="55" y="158" width="11" height="35" rx="2" class="body-part" data-part="Left Calf" onclick="selectBodyPart(this, 'Left Calf')"/>
                             </svg>
                             
                             <!-- Scanner Line Animation -->
@@ -373,12 +376,19 @@
                     </div>
                 </div>
 
-                <!-- Utilities -->
+                <!-- Utilities (Data Management) -->
                 <div class="border-t border-white/10 pt-4">
                     <h3 class="font-header text-lg text-gray-400 mb-3">DATA MANAGEMENT</h3>
-                    <button onclick="exportData()" class="w-full border border-neon-blue text-neon-blue hover:bg-neon-blue hover:text-black transition-colors py-2 rounded text-xs font-bold font-header flex items-center justify-center gap-2">
-                        <i data-lucide="download" class="w-4 h-4"></i> EXPORT DATABASE
-                    </button>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="exportData()" class="border border-neon-blue text-neon-blue hover:bg-neon-blue hover:text-black transition-colors py-2 rounded text-xs font-bold font-header flex items-center justify-center gap-2">
+                            <i data-lucide="download" class="w-4 h-4"></i> EXPORT
+                        </button>
+                        <button onclick="triggerImport()" class="border border-neon-green text-neon-green hover:bg-neon-green hover:text-black transition-colors py-2 rounded text-xs font-bold font-header flex items-center justify-center gap-2">
+                            <i data-lucide="upload" class="w-4 h-4"></i> IMPORT
+                        </button>
+                    </div>
+                    <!-- Hidden File Input -->
+                    <input type="file" id="import-file" class="hidden" onchange="importData(this)">
                 </div>
             </section>
         </main>
@@ -665,7 +675,7 @@
                 const el = document.createElement('div');
                 el.className = 'flex justify-between items-center bg-white/5 p-2 rounded text-xs border border-white/5';
                 el.innerHTML = `
-                    <span class="text-gray-300">${m.part}</span>
+                    <span class="text-gray-300 uppercase">${m.part}</span>
                     <span class="font-mono font-bold text-neon-purple">${m.value}</span>
                 `;
                 list.appendChild(el);
@@ -740,10 +750,12 @@
             });
         }
 
+        // --- Import / Export Logic ---
         function exportData() {
             const dataToExport = {
                 logs: appState.logs,
                 measurements: appState.measurements,
+                split: appState.currentSplit,
                 exportedAt: new Date().toISOString()
             };
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dataToExport));
@@ -753,6 +765,49 @@
             document.body.appendChild(downloadAnchorNode);
             downloadAnchorNode.click();
             downloadAnchorNode.remove();
+        }
+
+        function triggerImport() {
+            document.getElementById('import-file').click();
+        }
+
+        function importData(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (data.logs && data.measurements) {
+                        // Restore State
+                        appState.logs = data.logs || [];
+                        appState.measurements = data.measurements || [];
+                        if(data.split) appState.currentSplit = data.split;
+
+                        // Save to LocalStorage
+                        localStorage.setItem('iron_logs', JSON.stringify(appState.logs));
+                        localStorage.setItem('iron_measurements', JSON.stringify(appState.measurements));
+                        localStorage.setItem('iron_split', appState.currentSplit);
+                        
+                        // Refresh UI
+                        updateDashboard();
+                        renderMeasurements();
+                        renderProtocols();
+                        renderSessionLog(); 
+                        
+                        showNotification("SYSTEM RESTORED");
+                    } else {
+                        showNotification("ERR: CORRUPT DATA");
+                    }
+                } catch (err) {
+                    showNotification("ERR: READ FAILED");
+                    console.error(err);
+                }
+                // Reset input so same file can be selected again if needed
+                input.value = '';
+            };
+            reader.readAsText(file);
         }
 
         function showNotification(msg) {
